@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f5d5e">
+  <meta name="description" content="Consulta tributária de produtos para supermercados no Estado de São Paulo.">
+  <title>Agente Tributário SP</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">AT</div>
+        <div>
+          <h1>Agente Tributário SP</h1>
+          <p>Consultas para supermercados — ICMS, ST, PIS/COFINS e cBenef</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="btn" id="installBtn" hidden>⬇️ <span class="label">Instalar</span></button>
+        <button class="btn" data-open-modal="sourcesModal">⚖️ <span class="label">Fontes</span></button>
+        <button class="btn" data-open-modal="databaseModal">🗂️ <span class="label">Base</span></button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h2>Consulte o produto pelo nome ou NCM</h2>
+      <p>O resultado considera a data escolhida e separa ICMS próprio, benefícios, substituição tributária, PIS/COFINS, cBenef e alertas de classificação.</p>
+
+      <form id="searchForm" class="search-panel" autocomplete="off">
+        <div class="search-input-wrap">
+          <span>⌕</span>
+          <input id="searchInput" class="search-input" type="search" placeholder="Ex.: farinha láctea, creme dental ou 19011020" aria-label="Produto ou NCM">
+        </div>
+        <button class="search-btn" type="submit">Consultar</button>
+      </form>
+
+      <div class="search-options">
+        <div class="option-field">
+          <label for="referenceDate">Data da operação</label>
+          <input id="referenceDate" type="date" value="2026-07-12">
+        </div>
+        <div class="option-field">
+          <label for="operationType">Finalidade</label>
+          <select id="operationType">
+            <option value="audit">Auditoria de entrada</option>
+            <option value="sale">Saída interna varejista</option>
+            <option value="register">Parametrização cadastral</option>
+          </select>
+        </div>
+        <div class="option-field">
+          <label for="origin">Origem da entrada</label>
+          <select id="origin">
+            <option value="internal">Dentro de SP</option>
+            <option value="interstate">Interestadual</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="quick-searches" aria-label="Consultas rápidas">
+        <button class="quick-chip" data-query="farinha láctea">Farinha láctea</button>
+        <button class="quick-chip" data-query="creme dental">Creme dental</button>
+        <button class="quick-chip" data-query="café torrado">Café</button>
+        <button class="quick-chip" data-query="detergente">Detergente</button>
+        <button class="quick-chip" data-query="fita isolante">Fita isolante</button>
+      </div>
+    </section>
+
+    <main class="main-grid">
+      <section class="content-column">
+        <div id="matchList" class="match-list" hidden></div>
+        <div id="resultArea" class="card empty-state">
+          <div class="empty-icon">⚖</div>
+          <h3>Digite um produto ou NCM</h3>
+          <p>A base inicial contém consultas validadas do projeto e regras temporais de 2026.</p>
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <section class="card">
+          <div class="sidebar-title">
+            <h3>Histórico</h3>
+            <button class="btn small ghost danger" id="clearHistoryBtn">Limpar</button>
+          </div>
+          <div id="historyList" class="history-list"><p class="muted">Nenhuma consulta.</p></div>
+        </section>
+
+        <section class="card">
+          <div class="sidebar-title"><h3>Favoritos</h3></div>
+          <div id="favoritesList" class="favorites-list"><p class="muted">Nenhum favorito.</p></div>
+        </section>
+
+        <section class="card">
+          <div class="sidebar-title"><h3>IVA-ST ajustado</h3></div>
+          <div class="calc-grid">
+            <label>IVA original (%)<input id="ivaOriginal" type="number" step="0.01" placeholder="39,69"></label>
+            <label>Alíquota interestadual (%)<input id="aliqInter" type="number" step="0.01" value="12"></label>
+            <label>Alíquota interna (%)<input id="aliqIntra" type="number" step="0.01" value="18"></label>
+          </div>
+          <button class="btn primary" id="calculateIvaBtn" style="width:100%; justify-content:center; margin-top:10px">Calcular</button>
+          <div id="ivaResult" class="calc-result" hidden></div>
+        </section>
+
+        <section class="card info-list">
+          <div class="sidebar-title"><h3>Premissas</h3><span id="versionBadge" class="version"></span></div>
+          <div id="assumptionsList"></div>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      Ferramenta de apoio à análise fiscal. A classificação NCM é responsabilidade do contribuinte e deve ser sustentada pela descrição, composição e documentação técnica do produto.
+    </footer>
+  </div>
+
+  <div id="sourcesModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sourcesTitle">
+    <div class="modal">
+      <div class="modal-header"><h2 id="sourcesTitle">Fontes legais</h2><button class="btn small" data-close-modal>Fechar</button></div>
+      <div class="modal-body">
+        <p>Links oficiais usados na estrutura da base. A legislação deve ser revista sempre que houver atualização.</p>
+        <div id="sourceList" class="source-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="databaseModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="databaseTitle">
+    <div class="modal">
+      <div class="modal-header"><h2 id="databaseTitle">Gerenciar base local</h2><button class="btn small" data-close-modal>Fechar</button></div>
+      <div class="modal-body">
+        <p>Edite ou importe registros em JSON. As alterações ficam salvas somente neste navegador.</p>
+        <textarea id="databaseEditor" class="code-editor" spellcheck="false"></textarea>
+        <input id="importFile" type="file" accept="application/json" hidden>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="restoreDatabaseBtn">Restaurar original</button>
+        <button class="btn" id="importDatabaseBtn">Importar JSON</button>
+        <button class="btn" id="exportDatabaseBtn">Exportar JSON</button>
+        <button class="btn primary" id="saveDatabaseBtn">Salvar base</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
