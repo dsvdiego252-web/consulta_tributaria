@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f5d5e">
+  <meta name="description" content="Consulta tributária online de produtos para supermercados no Estado de São Paulo.">
+  <title>Agente Tributário SP</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">AT</div>
+        <div>
+          <h1>Agente Tributário SP</h1>
+          <p>Consulta online para supermercados — ICMS, ST, PIS/COFINS e cBenef</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="btn" id="installBtn" hidden>⬇️ <span class="label">Instalar</span></button>
+        <button class="btn" data-open-modal="settingsModal">⚙️ <span class="label">Configuração</span></button>
+        <button class="btn" data-open-modal="sourcesModal">⚖️ <span class="label">Fontes</span></button>
+        <button class="btn" data-open-modal="databaseModal">🗂️ <span class="label">Base local</span></button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-status"><span class="pulse-dot"></span> Consulta online com IA e pesquisa na legislação</div>
+      <h2>Consulte qualquer produto pelo nome ou NCM</h2>
+      <p>A pesquisa não fica limitada aos itens cadastrados. O sistema consulta a internet, prioriza fontes oficiais e usa a base local apenas como apoio para conferir regras já validadas.</p>
+
+      <form id="searchForm" class="search-panel" autocomplete="off">
+        <div class="search-input-wrap">
+          <span>⌕</span>
+          <input id="searchInput" class="search-input" type="search" placeholder="Ex.: água mineral Crystal sem gás 500 ml ou 22011000" aria-label="Produto ou NCM">
+        </div>
+        <button class="search-btn" id="searchBtn" type="submit">Consultar online</button>
+      </form>
+
+      <div class="search-options">
+        <div class="option-field">
+          <label for="referenceDate">Data da operação</label>
+          <input id="referenceDate" type="date">
+        </div>
+        <div class="option-field">
+          <label for="operationType">Finalidade</label>
+          <select id="operationType">
+            <option value="audit">Auditoria de entrada</option>
+            <option value="sale" selected>Saída interna varejista</option>
+            <option value="register">Parametrização cadastral</option>
+          </select>
+        </div>
+        <div class="option-field">
+          <label for="origin">Origem da entrada</label>
+          <select id="origin">
+            <option value="internal">Dentro de SP</option>
+            <option value="interstate">Interestadual</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="quick-searches" aria-label="Consultas rápidas">
+        <button class="quick-chip" data-query="água mineral Crystal sem gás 500 ml">Água mineral</button>
+        <button class="quick-chip" data-query="farinha láctea Nestlé 500 g">Farinha láctea</button>
+        <button class="quick-chip" data-query="creme dental Colgate 90 g">Creme dental</button>
+        <button class="quick-chip" data-query="café torrado e moído 500 g">Café</button>
+        <button class="quick-chip" data-query="detergente líquido 500 ml">Detergente</button>
+      </div>
+    </section>
+
+    <main class="main-grid">
+      <section class="content-column">
+        <div id="resultArea" class="card empty-state">
+          <div class="empty-icon">⚖</div>
+          <h3>Digite um produto ou NCM</h3>
+          <p>A consulta online verificará classificação fiscal, ICMS, substituição tributária, PIS/COFINS e cBenef conforme a data escolhida.</p>
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <section class="card">
+          <div class="sidebar-title">
+            <h3>Histórico</h3>
+            <button class="btn small ghost danger" id="clearHistoryBtn">Limpar</button>
+          </div>
+          <div id="historyList" class="history-list"><p class="muted">Nenhuma consulta.</p></div>
+        </section>
+
+        <section class="card">
+          <div class="sidebar-title"><h3>Favoritos</h3></div>
+          <div id="favoritesList" class="favorites-list"><p class="muted">Nenhum favorito.</p></div>
+        </section>
+
+        <section class="card">
+          <div class="sidebar-title"><h3>IVA-ST ajustado</h3></div>
+          <div class="calc-grid">
+            <label>IVA original (%)<input id="ivaOriginal" type="number" step="0.01" placeholder="39,69"></label>
+            <label>Alíquota interestadual (%)<input id="aliqInter" type="number" step="0.01" value="12"></label>
+            <label>Alíquota interna (%)<input id="aliqIntra" type="number" step="0.01" value="18"></label>
+          </div>
+          <button class="btn primary" id="calculateIvaBtn" style="width:100%; justify-content:center; margin-top:10px">Calcular</button>
+          <div id="ivaResult" class="calc-result" hidden></div>
+        </section>
+
+        <section class="card info-list">
+          <div class="sidebar-title"><h3>Como funciona</h3><span id="versionBadge" class="version"></span></div>
+          <div id="assumptionsList"></div>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      Ferramenta de apoio à análise fiscal. A conclusão depende da descrição, composição, embalagem, operação e legislação vigente. Revise o parecer antes de alterar a parametrização do ERP.
+    </footer>
+  </div>
+
+  <div id="settingsModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal compact-modal">
+      <div class="modal-header"><h2 id="settingsTitle">Configuração da consulta online</h2><button class="btn small" data-close-modal>Fechar</button></div>
+      <div class="modal-body settings-body">
+        <div class="notice info-notice">
+          <strong>A chave da OpenAI não deve ser colocada neste campo.</strong>
+          <p>Ela fica protegida nas variáveis de ambiente da Vercel. Aqui você informa somente o código de acesso do aplicativo, caso tenha configurado um.</p>
+        </div>
+        <label class="settings-field">
+          Código de acesso do aplicativo
+          <input id="accessCodeInput" type="password" autocomplete="off" placeholder="Deixe vazio se não configurou APP_ACCESS_CODE">
+        </label>
+        <p class="muted small-text">O código fica salvo somente neste navegador e é enviado ao seu próprio endpoint da Vercel.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn primary" id="saveSettingsBtn">Salvar configuração</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="sourcesModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sourcesTitle">
+    <div class="modal">
+      <div class="modal-header"><h2 id="sourcesTitle">Fontes legais prioritárias</h2><button class="btn small" data-close-modal>Fechar</button></div>
+      <div class="modal-body">
+        <p>A IA pode consultar outras páginas para identificar o produto, mas as conclusões legais devem ser sustentadas principalmente por fontes oficiais.</p>
+        <div id="sourceList" class="source-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="databaseModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="databaseTitle">
+    <div class="modal">
+      <div class="modal-header"><h2 id="databaseTitle">Gerenciar base local de apoio</h2><button class="btn small" data-close-modal>Fechar</button></div>
+      <div class="modal-body">
+        <p>A base local não limita a pesquisa. Quando houver um produto parecido, o registro é enviado como contexto para a IA e conferido novamente na legislação online.</p>
+        <textarea id="databaseEditor" class="code-editor" spellcheck="false"></textarea>
+        <input id="importFile" type="file" accept="application/json" hidden>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="restoreDatabaseBtn">Restaurar original</button>
+        <button class="btn" id="importDatabaseBtn">Importar JSON</button>
+        <button class="btn" id="exportDatabaseBtn">Exportar JSON</button>
+        <button class="btn primary" id="saveDatabaseBtn">Salvar base</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
